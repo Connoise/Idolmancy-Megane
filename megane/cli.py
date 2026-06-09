@@ -7,6 +7,7 @@ Commands
 * ``raw``         -- reinterpret a file's raw bytes as audio -> WAV.
 * ``demo``        -- generate a synthetic test image and run quick-scan.
 * ``render``      -- load a saved ``.megane`` project and render its sinks.
+* ``gui``         -- launch the node-graph interface (requires the gui extra).
 
 These let you exercise the full vertical slice from the terminal and listen to
 the result -- the Phase 1 feedback checkpoint.
@@ -121,7 +122,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
 
 def cmd_render(args: argparse.Namespace) -> int:
-    raw = _load_json(args.project)
+    raw = project.read(args.project)
     data = project.from_dict(raw)
     changed = project.check_assets(raw)
     if changed:
@@ -138,11 +139,16 @@ def cmd_render(args: argparse.Namespace) -> int:
     return 0
 
 
-def _load_json(path: str) -> dict:
-    import json
-
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def cmd_gui(args: argparse.Namespace) -> int:
+    try:
+        from .gui.app import main as gui_main
+    except ImportError as exc:
+        print("GUI dependencies missing. Install them with:")
+        print('  pip install -e ".[gui]"      (PySide6, NodeGraphQt, pyqtgraph)')
+        print(f"(import error: {exc})")
+        return 1
+    argv = ["megane-gui"] + ([args.project] if args.project else [])
+    return gui_main(argv)
 
 
 # -- parser --------------------------------------------------------------
@@ -192,6 +198,11 @@ def build_parser() -> argparse.ArgumentParser:
     rn.add_argument("--out-dir", dest="out_dir", default="")
     rn.add_argument("--play", action="store_true")
     rn.set_defaults(func=cmd_render)
+
+    gu = sub.add_parser("gui", help="Launch the node-graph GUI.")
+    gu.add_argument("project", nargs="?", default="",
+                    help="Optional .megane project to open.")
+    gu.set_defaults(func=cmd_gui)
     return p
 
 

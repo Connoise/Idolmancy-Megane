@@ -10,25 +10,53 @@ Megane is the first of a planned family of conceptual "tools" in the **Idolmancy
 field. It is built around a **node graph**: function nodes emit generic numeric
 ("Channel") data, and translator nodes turn that into audio, MIDI, and more.
 
-> **Status: Phase 1 — engine vertical slice.** A headless engine + CLI can already
-> load an image, scan it to a data stream, synthesize a tone from it, and export a
-> WAV. The node-graph GUI, color/MIDI/spectral toolbox, and GPU acceleration are
-> on the roadmap. See [`docs/SPEC.md`](docs/SPEC.md) for the full spec and plan.
+> **Status: Phase 2 — node-graph GUI.** The headless engine + CLI (Phase 1) and a
+> node-graph interface (Phase 2) are working: place and wire nodes, edit
+> parameters, auto-cook with live waveform/spectrogram preview, and save/load
+> projects. The color/MIDI/spectral toolbox and GPU acceleration are next. See
+> [`docs/SPEC.md`](docs/SPEC.md) for the full spec and plan.
+
+![Megane node-graph GUI](docs/images/gui_screenshot.png)
+*A 512×128 sine-contour image scanned column-by-column into a pentatonic
+melody — the image's contour is visible as the pitch line in the spectrogram.*
 
 ## Install
 
 Requires Python ≥ 3.10.
 
 ```bash
-pip install -e .            # core (numpy, Pillow)
-pip install -e ".[audio]"   # + soundfile/sounddevice for 24-bit/float export & preview
+pip install -e .            # core engine only (numpy, Pillow)
+pip install -e ".[gui,audio]"   # + node-graph GUI + better audio export/preview
 # GPU (optional): install the CuPy build matching your CUDA toolkit, e.g.
 #   pip install cupy-cuda12x
 ```
 
 Or just `pip install -r requirements.txt`.
 
-## Quick start
+## The GUI
+
+```bash
+megane gui                 # or: python -m megane.gui
+megane gui my.megane       # open a saved project
+```
+
+- **Nodes** panel (left): double-click a type to add it; drag ports to wire.
+  Illegal connections (mismatched data types) are rejected automatically.
+- **Parameters** (right): every node parameter, fully editable; `…` buttons
+  browse for files/directories.
+- **Preview** (bottom): Cook (`F5`), waveform + spectrogram + image + info
+  views, play through speakers, export WAV.
+- **Auto-cook** re-renders ~0.3 s after a change when every node in the chain
+  is realtime-capable; heavy chains ask for a manual Cook ("bake").
+- **Engine menu**: float precision (fp16/32/64), GPU toggle (when CuPy is
+  installed), output directory.
+- Projects save the graph, parameters, settings, node positions, and source
+  image hashes (so you're warned if a referenced image changed on disk).
+
+Known v1 limitations: copy/paste and undo of node *deletion* restore structure
+but reset that node's parameters to defaults; parameter edits are not undoable.
+
+## Quick start (CLI)
 
 ```bash
 # 1. Generate a synthetic test image and sonify it (writes output/demo.wav):
@@ -79,11 +107,12 @@ heavy nodes bake to a file.
 
 ```
 megane/core    data types, backend, node + graph engine, project save/load
-megane/dsp     pitch mapping, synthesis
+megane/dsp     pitch mapping, synthesis, spectral analysis
 megane/io      image decode, audio export/playback
 megane/nodes   the node library
+megane/gui     node-graph interface (PySide6 + NodeGraphQt + pyqtgraph)
 megane/cli.py  command-line interface
-tests/         pytest suite
+tests/         pytest suite (GUI tests auto-skip without the gui extra)
 docs/SPEC.md   full specification & development plan
 ```
 
@@ -96,8 +125,8 @@ python -m pytest
 
 ## Roadmap (short form)
 
-1. ✅ **Engine vertical slice** (this release)
-2. Node-graph GUI (PySide6 + NodeGraphQt)
+1. ✅ Engine vertical slice
+2. ✅ **Node-graph GUI** (this release)
 3. Color / statistics / **MIDI** toolbox + per-method pitch
 4. Spectral (image↔spectrogram) + GPU acceleration
 5. Stereo, harmonics, vectors, metadata, image splitting

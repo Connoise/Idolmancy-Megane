@@ -5,8 +5,9 @@
 > instrument for sound/image experimentation, not a music-making aid. It is the
 > first of a planned family of conceptual "tools" in the **Idolmancy** field.
 
-Status: **Phase 1 (engine vertical slice) implemented.** This document is the
-living design reference; sections marked _(planned)_ are not yet built.
+Status: **Phases 1–2 implemented** (engine vertical slice + node-graph GUI).
+This document is the living design reference; sections marked _(planned)_ are
+not yet built.
 
 ---
 
@@ -40,8 +41,8 @@ living design reference; sections marked _(planned)_ are not yet built.
 | Audio export | **soundfile** (libsndfile); stdlib `wave` fallback (16-bit PCM) |
 | Preview | **sounddevice** (best-effort; headless-safe) |
 | MIDI | **mido** _(Phase 3)_ |
-| GUI / node graph | **PySide6 + NodeGraphQt** _(Phase 2)_ |
-| Spectrogram view | **pyqtgraph** _(Phase 4)_ |
+| GUI / node graph | **PySide6 + NodeGraphQt** ✅ |
+| Spectrogram view | **pyqtgraph** ✅ (view; image↔spectral *synthesis* is Phase 4) |
 
 The legacy raster **`.img`** format is **out of scope**.
 
@@ -52,12 +53,26 @@ Headless engine + thin UI. Packages:
 ```
 megane/
   core/     data types, backend abstraction, node model, graph engine, projects
-  dsp/      pitch mapping, synthesis (signal-processing helpers)
+  dsp/      pitch mapping, synthesis, spectral analysis
   io/       image decode, audio export/playback
   nodes/    the node library (registers all node types)
   cli.py    command-line front-end (and the Idolmancer launch seam)
-  gui/      Qt node-graph front-end (Phase 2, planned)
+  gui/      Qt node-graph front-end (PySide6 + NodeGraphQt + pyqtgraph)
 ```
+
+**GUI architecture (Phase 2).** The engine `Graph` is the single source of
+truth; the NodeGraphQt view is kept in sync by an `EngineBridge`
+(`gui/bridge.py`) that forwards user actions (create/wire/delete) into the
+engine and rebuilds the view on project load. Node classes for the view and the
+parameter editors are **auto-generated** from each engine node's `Port`/`Param`
+specs, so new nodes added in later phases appear in the GUI with zero GUI code.
+Cooks run on the Qt thread pool (UI never blocks) through an **incremental cook
+cache** keyed by content signatures (`Graph.signature`): a node re-cooks only
+when its params, settings, source file, or upstream chain actually changed.
+Auto-cook (debounced ~300 ms) fires only when the whole chain is
+realtime-capable; heavy chains require a manual Cook ("bake"), per the
+pseudo-live model. Known v1 limitations: copy/paste and undo-of-delete restore
+structure but reset parameters to defaults; parameter edits are not undoable.
 
 **Backend abstraction (`core/backend.py`).** All heavy math goes through
 `backend.xp()` (NumPy or CuPy) and `backend.float_dtype()`. Flipping
@@ -136,8 +151,10 @@ Modeled on TouchDesigner's operator families:
   `image_input → raster_scan → oscillator → audio_output` plus `raw_bytes`. CLI to
   render & listen. **✅ Implemented — 🔵 listening checkpoint.**
 - **Phase 2 — Node-graph GUI.** PySide6 + NodeGraphQt; wire/edit/cook/preview;
-  spectrogram & stat views; "bake to file" for heavy nodes. **🔵 go/no-go on
-  node-graph vs. simple-UI fallback.**
+  waveform/spectrogram/image views; incremental cook cache; bake gating for
+  heavy chains; project open/save with node positions. **✅ Implemented — 🔵
+  go/no-go on node-graph vs. simple-UI fallback (verified headless; needs a
+  hands-on pass on Windows).**
 - **Phase 3 — Core toolbox.** Color pipeline + per-method pitch; statistics→synth;
   **MIDI** translator + export; control/math nodes (constant, expression,
   BPM/clock, range/curve); float-precision UI. **🔵**

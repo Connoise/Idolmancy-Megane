@@ -6,6 +6,11 @@ Pillow>=10.0
 soundfile>=0.12   # WAV float/24-bit via libsndfile; stdlib `wave` is the fallback
 sounddevice>=0.4  # optional, in-app preview playback
 
+# GUI (the node-graph interface; engine and CLI run without these)
+PySide6>=6.5
+NodeGraphQt>=0.6.30
+pyqtgraph>=0.13
+
 # Optional GPU acceleration (CUDA). Install the build matching your CUDA toolkit,
 # e.g. `pip install cupy-cuda12x`. The engine runs on CPU without it.
 # cupy-cuda12x

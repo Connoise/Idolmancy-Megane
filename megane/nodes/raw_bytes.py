@@ -49,8 +49,11 @@ class RawBytesNode(Node):
         if max_bytes > 0:
             raw = raw[:max_bytes]
 
+        # Trim to whole items, then to whole frames -- frombuffer requires the
+        # byte count to be an exact multiple of the item size.
+        itemsize = np.dtype(np_dtype).itemsize
+        raw = raw[: (len(raw) // itemsize) * itemsize]
         samples = np.frombuffer(raw, dtype=np_dtype)
-        # Trim to a whole number of frames for the requested channel count.
         channels = int(self.values["channels"])
         usable = (samples.size // channels) * channels
         samples = samples[:usable]

@@ -53,8 +53,8 @@ def _collect_assets(graph: Graph) -> dict[str, str]:
     return assets
 
 
-def to_dict(graph: Graph) -> dict[str, Any]:
-    return {
+def to_dict(graph: Graph, ui: dict[str, Any] | None = None) -> dict[str, Any]:
+    data = {
         "format": FORMAT,
         "version": VERSION,
         "settings": dict(graph.settings),
@@ -62,13 +62,23 @@ def to_dict(graph: Graph) -> dict[str, Any]:
         "connections": [list(c) for c in graph.connections],
         "assets": _collect_assets(graph),
     }
+    if ui:
+        # Presentation-only data (e.g. node positions); ignored by the engine.
+        data["ui"] = ui
+    return data
 
 
-def save(graph: Graph, path: str) -> str:
+def save(graph: Graph, path: str, ui: dict[str, Any] | None = None) -> str:
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(to_dict(graph), f, indent=2)
+        json.dump(to_dict(graph, ui=ui), f, indent=2)
     return path
+
+
+def read(path: str) -> dict[str, Any]:
+    """Read a project file to its raw dict (for callers that need ``ui`` etc.)."""
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def from_dict(data: dict[str, Any]) -> Graph:
@@ -84,8 +94,7 @@ def from_dict(data: dict[str, Any]) -> Graph:
 
 
 def load(path: str) -> Graph:
-    with open(path, "r", encoding="utf-8") as f:
-        return from_dict(json.load(f))
+    return from_dict(read(path))
 
 
 def check_assets(data: dict[str, Any]) -> list[str]:

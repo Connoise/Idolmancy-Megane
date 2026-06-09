@@ -23,18 +23,22 @@ def normalize(values, mode: str = "data_range"):
       (best for *hearing* variation; relative).
     * ``unit``       -- assume values are already ~[0, 1] and just clip
       (faithful/absolute when upstream already normalized by dtype).
+
+    Statistics are computed in float64 regardless of the working precision so
+    that fp16 mode cannot overflow on large raw values; only the *result* is
+    cast to the working dtype.
     """
     xp = backend.xp()
-    v = xp.asarray(values, dtype=backend.float_dtype())
+    v = xp.asarray(values, dtype=xp.float64)
     if mode == "unit":
-        return xp.clip(v, 0.0, 1.0)
+        return xp.clip(v, 0.0, 1.0).astype(backend.float_dtype())
     if mode == "data_range":
         v_min = v.min()
         v_max = v.max()
         span = v_max - v_min
         if float(backend.to_cpu(span)) <= 0.0:
-            return xp.full_like(v, 0.5)
-        return (v - v_min) / span
+            return xp.full(v.shape, 0.5, dtype=backend.float_dtype())
+        return ((v - v_min) / span).astype(backend.float_dtype())
     raise ValueError(f"unknown normalize mode {mode!r}")
 
 
@@ -46,12 +50,17 @@ def sample_and_hold(freqs, step_samples: int):
 
 
 def oscillate(freq_per_sample, sample_rate: float, amplitude: float = 0.8):
-    """Render a continuous-phase sine from a per-sample frequency array."""
+    """Render a continuous-phase sine from a per-sample frequency array.
+
+    Phase is the running integral of ``2*pi*f/sr``; a cumulative sum keeps it
+    continuous so consecutive frequency steps never click. The accumulation is
+    done in float64 no matter the working precision: an fp16/fp32 running sum
+    loses pitch accuracy within a fraction of a second of audio.
+    """
     xp = backend.xp()
-    f = xp.asarray(freq_per_sample, dtype=backend.float_dtype())
-    # Phase is the running integral of 2*pi*f/sr; cumulative sum keeps it
-    # continuous so consecutive frequency steps never click.
-    phase = xp.cumsum(2.0 * np.pi * f / float(sample_rate))
+    f = xp.asarray(freq_per_sample)
+    phase = xp.cumsum(2.0 * np.pi * f.astype(xp.float64) / float(sample_rate))
+    phase = xp.mod(phase, 2.0 * np.pi)  # wrap before any precision cast
     return (amplitude * xp.sin(phase)).astype(backend.float_dtype())
 
 

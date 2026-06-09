@@ -10,8 +10,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from ..core import backend, types
 from ..core.node import Node, Param, Port, register
-from ..core import types
 from ..core.types import Channel
 from ..io import audio_io
 
@@ -38,7 +38,7 @@ class AudioOutputNode(Node):
         ch: Channel = inputs["audio"]
         data = ch.data
         if self.values["normalize"]:
-            cpu = audio_io.backend.to_cpu(data)
+            cpu = backend.to_cpu(data)
             peak = float(abs(cpu).max()) if cpu.size else 0.0
             if peak > 0:
                 data = data / peak
