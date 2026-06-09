@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "megane"
+version = "0.1.0"
+description = "Megane -- a faithful image-to-audio sonification engine (node-based)."
+readme = "README.md"
+requires-python = ">=3.10"
+# license: TBD — see README (non-commercial intent may favor a non-MIT license)
+dependencies = [
+    "numpy>=1.24",
+    "Pillow>=10.0",
+]
+
+[project.optional-dependencies]
+audio = ["soundfile>=0.12", "sounddevice>=0.4"]
+gpu = ["cupy-cuda12x"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+megane = "megane.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["megane*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

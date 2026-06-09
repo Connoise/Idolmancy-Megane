@@ -1,0 +1,11 @@
+# Core (required)
+numpy>=1.24
+Pillow>=10.0
+
+# Recommended (audio export beyond 16-bit PCM, and live preview)
+soundfile>=0.12   # WAV float/24-bit via libsndfile; stdlib `wave` is the fallback
+sounddevice>=0.4  # optional, in-app preview playback
+
+# Optional GPU acceleration (CUDA). Install the build matching your CUDA toolkit,
+# e.g. `pip install cupy-cuda12x`. The engine runs on CPU without it.
+# cupy-cuda12x
