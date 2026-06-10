@@ -10,13 +10,17 @@ Megane is the first of a planned family of conceptual "tools" in the **Idolmancy
 field. It is built around a **node graph**: function nodes emit generic numeric
 ("Channel") data, and translator nodes turn that into audio, MIDI, and more.
 
-> **Status: Phase 3 — core toolbox.** The headless engine + CLI (Phase 1), the
-> node-graph GUI (Phase 2), and the core experimental toolbox (Phase 3) are
-> working: a color pipeline (HSV/CIELAB/XYZ), waveform-from-image and
-> image-statistics synthesis, a math-data→MIDI translator with `.mid` export,
-> and control/math glue nodes — all auto-exposed in the GUI with live
-> waveform/spectrogram preview and project save/load. Spectral resynthesis and
-> GPU acceleration are next. See [`docs/SPEC.md`](docs/SPEC.md) for the full plan.
+> **Status: Phase 4 — spectral + GPU.** Working today: the headless engine +
+> CLI, the node-graph GUI, the core toolbox (color pipeline, wavetable and
+> statistics synthesis, math-data→MIDI with `.mid` export, control/math glue),
+> and now **spectral resynthesis** — paint an image into a spectrogram and
+> synthesize it, via an additive oscillator bank (GPU-ready) or ISTFT +
+> Griffin-Lim. Heavy nodes are bake-gated in the GUI; `megane bench --gpu`
+> times CPU vs CUDA. See [`docs/SPEC.md`](docs/SPEC.md) for the full plan.
+
+![Image-to-spectrogram synthesis](docs/images/gui_phase4_spectral.png)
+*The word in the image is the sound: a text image synthesized by the `spectral`
+node, read back in the preview's spectrogram.*
 
 ![Megane node-graph GUI](docs/images/gui_screenshot.png)
 *A 512×128 sine-contour image scanned column-by-column into a pentatonic
@@ -97,12 +101,15 @@ image_input ─▶ color_scan ─┬─▶ (c1) oscillator.values ─▶ audio_o
 # math data → MIDI
 … ─▶ color_scan ─▶ to_midi ─▶ midi_output   (.mid)
 
+# the image IS the spectrogram (heavy: bake with F5; GPU-accelerated)
+image_input ─▶ spectral ─▶ audio_output
+
 raw_bytes ───────────────────────────────▶ audio_output
 ```
 
 **Node families:** sources (`image_input`, `raw_bytes`, `constant`),
 image ops (`color_convert`), analysis (`raster_scan`, `color_scan`,
-`statistics`), synthesis (`oscillator`, `wavetable`), translation
+`statistics`), synthesis (`oscillator`, `wavetable`, `spectral`), translation
 (`to_midi`), control/math (`expression`, `range_map`, `resample`), and sinks
 (`audio_output`, `midi_output`). New nodes appear in the GUI automatically.
 
@@ -143,10 +150,13 @@ python -m pytest
 
 1. ✅ Engine vertical slice
 2. ✅ Node-graph GUI
-3. ✅ **Color / statistics / MIDI toolbox + per-method pitch** (this release)
-4. Spectral (image↔spectrogram) + GPU acceleration
+3. ✅ Color / statistics / MIDI toolbox + per-method pitch
+4. ✅ **Spectral (image→spectrogram→audio) + GPU readiness** (this release)
 5. Stereo, harmonics, vectors, metadata, image splitting
 6. Projects/templates, presets, Windows packaging
+
+GPU: `pip install cupy-cuda12x`, then *Engine → Use GPU* (GUI) or `--gpu`
+(CLI). Benchmark your machine with `megane bench [--size 5000] --gpu`.
 
 Later: multi-image composition, video→audio, 3D/point clouds, audio→image, and a
 companion **Mangekyo** (kaleidoscope) tool for *transformation* rather than

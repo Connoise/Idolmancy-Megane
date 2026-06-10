@@ -5,9 +5,9 @@
 > instrument for sound/image experimentation, not a music-making aid. It is the
 > first of a planned family of conceptual "tools" in the **Idolmancy** field.
 
-Status: **Phases 1–3 implemented** (engine + node-graph GUI + core toolbox:
-color, wavetable, statistics, MIDI, control/math). This document is the living
-design reference; sections marked _(planned)_ are not yet built.
+Status: **Phases 1–4 implemented** (engine + node-graph GUI + core toolbox +
+spectral resynthesis/GPU readiness). This document is the living design
+reference; sections marked _(planned)_ are not yet built.
 
 ---
 
@@ -129,6 +129,7 @@ Modeled on TouchDesigner's operator families:
 | `to_midi` | Channel → MIDI | *math values → MIDI notes (chromatic/scale/note_set)* |
 | `midi_output` | MIDI → file | *MIDI export (.mid)* |
 | `raw_bytes` | → Audio | *raw file bytes → audio (data-bending)* |
+| `spectral` | Image → Audio | *image as spectrogram → sound (additive bank on GPU path, or ISTFT + Griffin-Lim); first bake-gated heavy node* |
 | `constant` / `expression` / `range_map` / `resample` | Channel(s) → Channel | *control/math glue; sample-rate adjust* |
 | `audio_output` | Audio → file | *preview + export to directory* |
 
@@ -136,8 +137,6 @@ Modeled on TouchDesigner's operator families:
 
 | Method | Node(s) | Phase |
 |---|---|---|
-| Image → spectral shape (spectrogram) | `spectral`, spectrogram view | 4 |
-| Neighbor functions / GPU acceleration | node options + engine | 4 |
 | Stereo manipulation | `stereo_*` | 5 |
 | Harmonic affectation of a base frequency | `harmonic_synth` | 5 |
 | Vector/gradient → direction | `gradient` | 5 |
@@ -164,8 +163,12 @@ Modeled on TouchDesigner's operator families:
   control/math nodes (constant, expression, range_map, resample); oscillator
   waveform + amp/shape/bpm modulation inputs. **✅ Implemented — 🔵 mapping-design
   checkpoint.**
-- **Phase 4 — Spectral + GPU.** Image→spectrogram→audio (inverse STFT/Griffin-Lim)
-  + spectrogram view; CuPy/Numba on heavy nodes; benchmark on 5000×5000. **🔵**
+- **Phase 4 — Spectral + GPU.** `spectral` node: additive oscillator-bank
+  (backend/GPU path, partial cap = spectral neighbor lever) and ISTFT +
+  Griffin-Lim (seeded/deterministic); first `realtime_capable=False` node
+  exercising bake gating; `megane bench` CLI for CPU-vs-GPU timing.
+  **✅ Implemented — 🔵 spectral quality check + run `megane bench --gpu`
+  on the 3090 (CUDA can't be tested in the dev container).**
 - **Phase 5 — Breadth.** Stereo, harmonic/additive, vector/gradient, metadata,
   single-image splitting → multi-track. **🔵**
 - **Phase 6 — Projects/templates, presets, packaging.** Reproducibility hardening,
@@ -184,3 +187,11 @@ GPU acceleration is designed in from the start **via high-level libraries**
 **not** hand-written CUDA C++. The backend abstraction already isolates this, so
 enabling it is low-risk. The deterministic guarantee is on the **CPU** path; GPU
 reductions may differ in the last bits unless deterministic ops are forced.
+
+To enable: `pip install cupy-cuda12x` (matching the installed CUDA toolkit),
+then toggle *Engine → Use GPU* in the GUI or pass `--gpu` on the CLI. Compare
+backends with `megane bench [--size 5000] [--gpu]`. GPU-accelerated paths:
+oscillator/wavetable synthesis and the spectral **additive** bank (the chunked
+partial×sample matrix math — the dominant cost). The ISTFT/Griffin-Lim path is
+deliberately CPU/NumPy: `np.add.at` overlap-add has no portable CuPy
+equivalent, and it is a bake operation anyway.

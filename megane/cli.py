@@ -8,6 +8,7 @@ Commands
 * ``demo``        -- generate a synthetic test image and run quick-scan.
 * ``render``      -- load a saved ``.megane`` project and render its sinks.
 * ``gui``         -- launch the node-graph interface (requires the gui extra).
+* ``bench``       -- time the heavy nodes (compare CPU vs ``--gpu`` on CUDA).
 
 These let you exercise the full vertical slice from the terminal and listen to
 the result -- the Phase 1 feedback checkpoint.
@@ -139,6 +140,58 @@ def cmd_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_bench(args: argparse.Namespace) -> int:
+    """Time the heavy paths on the active backend (run with/without --gpu)."""
+    import time
+
+    from .core.types import Image
+    from .nodes.oscillator import OscillatorNode
+    from .nodes.raster_scan import RasterScanNode
+    from .nodes.spectral import SpectralNode
+    from .nodes.wavetable import WavetableNode
+
+    backend.set_precision(args.precision or "fp32")
+    gpu_on = backend.set_gpu(args.gpu)
+    if args.gpu and not gpu_on:
+        print("(--gpu requested but CuPy/CUDA is unavailable; running on CPU)")
+    label = "GPU (CuPy)" if gpu_on else "CPU (NumPy)"
+    size = int(args.size)
+    print(f"Megane bench — backend: {label}, precision: {backend.precision_name()}, "
+          f"image: {size}x{size}")
+
+    rng = np.random.default_rng(0)
+    img = Image(data=rng.random((size, size)).astype(np.float32))
+
+    def timed(name: str, fn) -> None:
+        t0 = time.perf_counter()
+        out = fn()
+        # touch the result so lazy GPU kernels finish before the clock stops
+        from .core import backend as _b
+        for v in out.values():
+            if hasattr(v, "data"):
+                _b.to_cpu(v.data)
+        dt = (time.perf_counter() - t0) * 1000.0
+        print(f"  {name:<46}: {dt:9.1f} ms")
+
+    scan = RasterScanNode()
+    osc = OscillatorNode(total_seconds=args.duration)
+    timed("raster_scan + oscillator",
+          lambda: osc.cook({"values": scan.cook({"image": img})["values"]}))
+    timed(f"wavetable ({args.duration:g} s, linear interp)",
+          lambda: WavetableNode(duration=args.duration).cook({"image": img}))
+    timed(f"spectral additive ({args.partials} partials, {args.duration:g} s)",
+          lambda: SpectralNode(method="additive", max_partials=args.partials,
+                               total_seconds=args.duration).cook({"image": img}))
+    timed(f"spectral istft (GL x{args.iterations})",
+          lambda: SpectralNode(method="istft",
+                               iterations=args.iterations).cook({"image": img}))
+    if not gpu_on and backend.gpu_available():
+        print("hint: add --gpu to compare against the CUDA backend")
+    backend.set_gpu(False)
+    backend.set_precision("fp32")
+    return 0
+
+
 def cmd_gui(args: argparse.Namespace) -> int:
     try:
         from .gui.app import main as gui_main
@@ -203,6 +256,13 @@ def build_parser() -> argparse.ArgumentParser:
     gu.add_argument("project", nargs="?", default="",
                     help="Optional .megane project to open.")
     gu.set_defaults(func=cmd_gui)
+
+    be = sub.add_parser("bench", help="Benchmark heavy nodes (CPU vs --gpu).")
+    be.add_argument("--size", type=int, default=1024, help="Synthetic image side.")
+    be.add_argument("--duration", type=float, default=4.0, help="Render seconds.")
+    be.add_argument("--partials", type=int, default=512, help="Additive partial cap.")
+    be.add_argument("--iterations", type=int, default=16, help="Griffin-Lim iterations.")
+    be.set_defaults(func=cmd_bench)
     return p
 
 

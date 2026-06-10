@@ -22,6 +22,7 @@ from .midi_output import MidiOutputNode
 from .oscillator import OscillatorNode
 from .raster_scan import RasterScanNode
 from .raw_bytes import RawBytesNode
+from .spectral import SpectralNode
 from .statistics import StatisticsNode
 from .to_midi import ToMidiNode
 from .wavetable import WavetableNode
@@ -42,4 +43,5 @@ __all__ = [
     "ExpressionNode",
     "RangeMapNode",
     "ResampleNode",
+    "SpectralNode",
 ]
