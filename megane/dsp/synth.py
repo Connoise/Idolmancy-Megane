@@ -49,18 +49,58 @@ def sample_and_hold(freqs, step_samples: int):
     return xp.repeat(f, max(1, int(step_samples)))
 
 
-def oscillate(freq_per_sample, sample_rate: float, amplitude: float = 0.8):
-    """Render a continuous-phase sine from a per-sample frequency array.
+def resample_nearest(values, n: int):
+    """Resample a 1-D array to ``n`` samples by nearest-index lookup.
 
-    Phase is the running integral of ``2*pi*f/sr``; a cumulative sum keeps it
-    continuous so consecutive frequency steps never click. The accumulation is
-    done in float64 no matter the working precision: an fp16/fp32 running sum
-    loses pitch accuracy within a fraction of a second of audio.
+    The standard way Phase-3 nodes align a modulation input (amp, shape,
+    velocity...) of arbitrary length to a target step/sample count.
+    """
+    xp = backend.xp()
+    v = xp.asarray(values)
+    if v.shape[-1] == n:
+        return v
+    if v.shape[-1] == 1:
+        return xp.repeat(v, n)
+    idx = xp.rint(xp.linspace(0, v.shape[-1] - 1, n)).astype(int)
+    return v[idx]
+
+
+def phase_accumulate(freq_per_sample, sample_rate: float):
+    """Integrate per-sample frequency into wrapped phase (float64 radians).
+
+    Accumulation stays in float64 no matter the working precision: an
+    fp16/fp32 running sum loses pitch accuracy within a fraction of a second.
     """
     xp = backend.xp()
     f = xp.asarray(freq_per_sample)
     phase = xp.cumsum(2.0 * np.pi * f.astype(xp.float64) / float(sample_rate))
-    phase = xp.mod(phase, 2.0 * np.pi)  # wrap before any precision cast
+    return xp.mod(phase, 2.0 * np.pi)
+
+
+def waveform_from_phase(phase, kind: str = "sine"):
+    """Evaluate a (naive, unfiltered) waveform at the given phase (radians).
+
+    Saw/square/triangle are intentionally naive -- aliasing and all. Faithful
+    raw translation is the project's point; band-limited oscillators can come
+    later as an option.
+    """
+    xp = backend.xp()
+    if kind == "sine":
+        return xp.sin(phase)
+    p = xp.mod(phase / (2.0 * np.pi), 1.0)
+    if kind == "saw":
+        return 2.0 * p - 1.0
+    if kind == "square":
+        return xp.where(p < 0.5, 1.0, -1.0)
+    if kind == "triangle":
+        return 1.0 - 4.0 * xp.abs(p - 0.5)
+    raise ValueError(f"unknown waveform {kind!r}")
+
+
+def oscillate(freq_per_sample, sample_rate: float, amplitude: float = 0.8):
+    """Render a continuous-phase sine from a per-sample frequency array."""
+    phase = phase_accumulate(freq_per_sample, sample_rate)
+    xp = backend.xp()
     return (amplitude * xp.sin(phase)).astype(backend.float_dtype())
 
 

@@ -1,6 +1,6 @@
-"""Signal-processing helpers: pitch mapping and synthesis."""
+"""Signal-processing helpers: pitch mapping, synthesis, spectral, color."""
 from __future__ import annotations
 
-from . import pitch, spectral, synth
+from . import color, pitch, spectral, synth
 
-__all__ = ["pitch", "spectral", "synth"]
+__all__ = ["color", "pitch", "spectral", "synth"]

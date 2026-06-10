@@ -5,9 +5,9 @@
 > instrument for sound/image experimentation, not a music-making aid. It is the
 > first of a planned family of conceptual "tools" in the **Idolmancy** field.
 
-Status: **Phases 1–2 implemented** (engine vertical slice + node-graph GUI).
-This document is the living design reference; sections marked _(planned)_ are
-not yet built.
+Status: **Phases 1–3 implemented** (engine + node-graph GUI + core toolbox:
+color, wavetable, statistics, MIDI, control/math). This document is the living
+design reference; sections marked _(planned)_ are not yet built.
 
 ---
 
@@ -115,25 +115,29 @@ Modeled on TouchDesigner's operator families:
 
 ## 7. Node library
 
-**Phase 1 (built).** Coverage of requested methods in *italics*.
+**Built (Phases 1–3).** Coverage of requested methods in *italics*.
 
 | Node | I/O | Method |
 |---|---|---|
 | `image_input` | → Image | decode file |
 | `raster_scan` | Image → Channel | *raster values → data (row/column, reductions)* |
-| `oscillator` | Channel → Audio | *value→pitch translation + sample-and-hold synth* |
+| `color_convert` | Image → Image | *re-express image in HSV / CIELAB / XYZ / linear RGB* |
+| `color_scan` | Image → 3×Channel | *color → data (hue/sat/val streams, circular hue mean)* |
+| `oscillator` | Channel → Audio | *value→pitch + waveform; amp/shape/bpm modulation inputs* |
+| `wavetable` | Image → Audio | *waveform from image rows/cols/histogram; pitch/speed/dynamics* |
+| `statistics` | Image → Table+Channels | *image stats as data (mean/std/min/max → constants)* |
+| `to_midi` | Channel → MIDI | *math values → MIDI notes (chromatic/scale/note_set)* |
+| `midi_output` | MIDI → file | *MIDI export (.mid)* |
 | `raw_bytes` | → Audio | *raw file bytes → audio (data-bending)* |
+| `constant` / `expression` / `range_map` / `resample` | Channel(s) → Channel | *control/math glue; sample-rate adjust* |
 | `audio_output` | Audio → file | *preview + export to directory* |
 
 **Planned nodes** (mapped to the original method list):
 
 | Method | Node(s) | Phase |
 |---|---|---|
-| Waveform from statistics (S&H, pitch/speed, dynamics) | `statistics`, `synth` | 3 |
-| Color → audio (HSV/CIELAB/XYZ; freq-range/scale/note) | `color_convert`, `color_map` | 3 |
-| Math values → MIDI | `to_midi`, `midi_output` | 3 |
 | Image → spectral shape (spectrogram) | `spectral`, spectrogram view | 4 |
-| Sample-rate / neighbor functions | node options + engine | 3–4 |
+| Neighbor functions / GPU acceleration | node options + engine | 4 |
 | Stereo manipulation | `stereo_*` | 5 |
 | Harmonic affectation of a base frequency | `harmonic_synth` | 5 |
 | Vector/gradient → direction | `gradient` | 5 |
@@ -155,9 +159,11 @@ Modeled on TouchDesigner's operator families:
   heavy chains; project open/save with node positions. **✅ Implemented — 🔵
   go/no-go on node-graph vs. simple-UI fallback (verified headless; needs a
   hands-on pass on Windows).**
-- **Phase 3 — Core toolbox.** Color pipeline + per-method pitch; statistics→synth;
-  **MIDI** translator + export; control/math nodes (constant, expression,
-  BPM/clock, range/curve); float-precision UI. **🔵**
+- **Phase 3 — Core toolbox.** Color pipeline (HSV/CIELAB/XYZ) + per-method pitch;
+  wavetable + statistics synthesis; **MIDI** translator + `.mid` export;
+  control/math nodes (constant, expression, range_map, resample); oscillator
+  waveform + amp/shape/bpm modulation inputs. **✅ Implemented — 🔵 mapping-design
+  checkpoint.**
 - **Phase 4 — Spectral + GPU.** Image→spectrogram→audio (inverse STFT/Griffin-Lim)
   + spectrogram view; CuPy/Numba on heavy nodes; benchmark on 5000×5000. **🔵**
 - **Phase 5 — Breadth.** Stereo, harmonic/additive, vector/gradient, metadata,

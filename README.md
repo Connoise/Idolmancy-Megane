@@ -10,11 +10,13 @@ Megane is the first of a planned family of conceptual "tools" in the **Idolmancy
 field. It is built around a **node graph**: function nodes emit generic numeric
 ("Channel") data, and translator nodes turn that into audio, MIDI, and more.
 
-> **Status: Phase 2 — node-graph GUI.** The headless engine + CLI (Phase 1) and a
-> node-graph interface (Phase 2) are working: place and wire nodes, edit
-> parameters, auto-cook with live waveform/spectrogram preview, and save/load
-> projects. The color/MIDI/spectral toolbox and GPU acceleration are next. See
-> [`docs/SPEC.md`](docs/SPEC.md) for the full spec and plan.
+> **Status: Phase 3 — core toolbox.** The headless engine + CLI (Phase 1), the
+> node-graph GUI (Phase 2), and the core experimental toolbox (Phase 3) are
+> working: a color pipeline (HSV/CIELAB/XYZ), waveform-from-image and
+> image-statistics synthesis, a math-data→MIDI translator with `.mid` export,
+> and control/math glue nodes — all auto-exposed in the GUI with live
+> waveform/spectrogram preview and project save/load. Spectral resynthesis and
+> GPU acceleration are next. See [`docs/SPEC.md`](docs/SPEC.md) for the full plan.
 
 ![Megane node-graph GUI](docs/images/gui_screenshot.png)
 *A 512×128 sine-contour image scanned column-by-column into a pentatonic
@@ -87,8 +89,22 @@ for speed.
 image_input ─▶ raster_scan ─▶ oscillator ─▶ audio_output
                 (Image→data)   (data→audio)   (WAV + preview)
 
+# color pipeline: hue→pitch, brightness→dynamics, saturation→timbre
+image_input ─▶ color_scan ─┬─▶ (c1) oscillator.values ─▶ audio_output
+                           ├─▶ (c3) oscillator.amp
+                           └─▶ (c2) oscillator.shape
+
+# math data → MIDI
+… ─▶ color_scan ─▶ to_midi ─▶ midi_output   (.mid)
+
 raw_bytes ───────────────────────────────▶ audio_output
 ```
+
+**Node families:** sources (`image_input`, `raw_bytes`, `constant`),
+image ops (`color_convert`), analysis (`raster_scan`, `color_scan`,
+`statistics`), synthesis (`oscillator`, `wavetable`), translation
+(`to_midi`), control/math (`expression`, `range_map`, `resample`), and sinks
+(`audio_output`, `midi_output`). New nodes appear in the GUI automatically.
 
 Data flows between nodes as typed ports (modeled on TouchDesigner):
 
@@ -126,8 +142,8 @@ python -m pytest
 ## Roadmap (short form)
 
 1. ✅ Engine vertical slice
-2. ✅ **Node-graph GUI** (this release)
-3. Color / statistics / **MIDI** toolbox + per-method pitch
+2. ✅ Node-graph GUI
+3. ✅ **Color / statistics / MIDI toolbox + per-method pitch** (this release)
 4. Spectral (image↔spectrogram) + GPU acceleration
 5. Stereo, harmonics, vectors, metadata, image splitting
 6. Projects/templates, presets, Windows packaging

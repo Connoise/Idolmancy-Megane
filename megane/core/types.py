@@ -130,12 +130,20 @@ class MIDINote:
     track: int = 0
 
 
-@dataclass
+@dataclass(repr=False)
 class MIDIData:
-    """A collection of note events. (Translator nodes land in Phase 3.)"""
+    """A collection of note events (produced by translator nodes like to_midi)."""
 
     notes: list[MIDINote] = field(default_factory=list)
     tempo_bpm: float = 120.0
+
+    @property
+    def duration(self) -> float:
+        return max((n.start + n.duration for n in self.notes), default=0.0)
+
+    def __repr__(self) -> str:  # pragma: no cover - cosmetic
+        return (f"MIDIData(notes={len(self.notes)}, tempo={self.tempo_bpm:g} bpm, "
+                f"duration={self.duration:.2f}s)")
 
 
 @dataclass
