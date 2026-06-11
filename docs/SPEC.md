@@ -5,9 +5,10 @@
 > instrument for sound/image experimentation, not a music-making aid. It is the
 > first of a planned family of conceptual "tools" in the **Idolmancy** field.
 
-Status: **Phases 1–4 implemented** (engine + node-graph GUI + core toolbox +
-spectral resynthesis/GPU readiness). This document is the living design
-reference; sections marked _(planned)_ are not yet built.
+Status: **v1.0 — initial development complete (Phases 1–6).** Engine,
+node-graph GUI, core toolbox, spectral resynthesis + GPU readiness, breadth
+nodes (stereo/harmonic/gradient/metadata/split), and presets/templates/
+packaging. This document remains the living design reference.
 
 ---
 
@@ -130,18 +131,16 @@ Modeled on TouchDesigner's operator families:
 | `midi_output` | MIDI → file | *MIDI export (.mid)* |
 | `raw_bytes` | → Audio | *raw file bytes → audio (data-bending)* |
 | `spectral` | Image → Audio | *image as spectrogram → sound (additive bank on GPU path, or ISTFT + Griffin-Lim); first bake-gated heavy node* |
+| `harmonic` | Image → Audio | *image values as harmonic affectations to a base frequency (f0 modulatable)* |
+| `gradient` | Image → 4×Channel | *vector information → direction/magnitude data (circular-mean angles)* |
+| `metadata` | Image → Table+Channel | *file/EXIF metadata as a table — and as sonifiable numbers* |
+| `split` | Image → 4×Image | *splitting image data → multi-part compositions (quadrants/rows/columns/RGBA)* |
+| `pan` / `stereo_merge` / `stereo_width` / `mix` | Channel(s) → Channel | *stereo creation & manipulation; multi-part mixdown* |
 | `constant` / `expression` / `range_map` / `resample` | Channel(s) → Channel | *control/math glue; sample-rate adjust* |
-| `audio_output` | Audio → file | *preview + export to directory* |
+| `audio_output` | Audio → file | *preview + export to directory (WAV/FLAC via soundfile)* |
 
-**Planned nodes** (mapped to the original method list):
-
-| Method | Node(s) | Phase |
-|---|---|---|
-| Stereo manipulation | `stereo_*` | 5 |
-| Harmonic affectation of a base frequency | `harmonic_synth` | 5 |
-| Vector/gradient → direction | `gradient` | 5 |
-| Image splitting → multi-part | `split`, `mixer` | 5 |
-| Metadata processing | `metadata` | 5 |
+All methods from the original request are now covered; future nodes extend
+rather than complete the set.
 
 ## 8. Development plan
 
@@ -169,10 +168,16 @@ Modeled on TouchDesigner's operator families:
   exercising bake gating; `megane bench` CLI for CPU-vs-GPU timing.
   **✅ Implemented — 🔵 spectral quality check + run `megane bench --gpu`
   on the 3090 (CUDA can't be tested in the dev container).**
-- **Phase 5 — Breadth.** Stereo, harmonic/additive, vector/gradient, metadata,
-  single-image splitting → multi-track. **🔵**
-- **Phase 6 — Projects/templates, presets, packaging.** Reproducibility hardening,
-  export options, CLI/headless polish (Idolmancer seam), GitHub packaging. **🔵**
+- **Phase 5 — Breadth.** Stereo family (`pan`/`stereo_merge`/`stereo_width`/
+  `mix` with auto rate/length alignment), `harmonic`, `gradient`, `metadata`,
+  `split` → multi-part compositions. **✅ Implemented.**
+- **Phase 6 — Projects/templates, presets, packaging.** Built-in + user presets
+  (GUI preset row; `~/.megane/presets.json`); four example templates in
+  `examples/`; project files record the writing app version; `megane render`
+  resolves relative asset paths against the project directory and renders MIDI
+  sinks too; FLAC export; PyInstaller spec + Windows install guide in
+  `packaging/` and `docs/INSTALL_WINDOWS.md`. **✅ Implemented — 🔵 v1.0
+  hands-on checkpoint on Windows.**
 
 ### Future (post-v1)
 Multi-image composition (series/transitions/overlay/negative/combined stats — its

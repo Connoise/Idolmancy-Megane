@@ -38,15 +38,26 @@ def _to_interleaved(data) -> np.ndarray:
 
 
 def write_wav(path: str, data, sample_rate: float, subtype: str = "PCM_16") -> str:
-    """Write a mono/stereo buffer to ``path``. ``data`` is (C, N) or (N,)."""
+    """Write a mono/stereo buffer to ``path``. ``data`` is (C, N) or (N,).
+
+    With ``soundfile`` installed the container format follows the file
+    extension (``.wav``, ``.flac``, ...). FLAC does not support FLOAT; an
+    incompatible subtype falls back to PCM_24 rather than failing the render.
+    """
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     frames = _to_interleaved(data)
     sr = int(round(sample_rate))
 
     if _sf is not None:
+        if path.lower().endswith(".flac") and subtype == "FLOAT":
+            subtype = "PCM_24"
         _sf.write(path, frames, sr, subtype=subtype)
         return path
 
+    if not path.lower().endswith(".wav"):
+        raise RuntimeError(
+            f"writing {os.path.splitext(path)[1]!r} requires the 'soundfile' "
+            "package; only .wav is available via the stdlib fallback")
     # Fallback: 16-bit PCM via the standard library.
     pcm = (frames * 32767.0).astype("<i2")
     with wave.open(path, "wb") as w:

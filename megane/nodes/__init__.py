@@ -17,13 +17,18 @@ from .audio_output import AudioOutputNode
 from .color_convert import ColorConvertNode
 from .color_scan import ColorScanNode
 from .control import ConstantNode, ExpressionNode, RangeMapNode, ResampleNode
+from .gradient import GradientNode
+from .harmonic import HarmonicNode
 from .image_input import ImageInputNode
+from .metadata import MetadataNode
 from .midi_output import MidiOutputNode
 from .oscillator import OscillatorNode
 from .raster_scan import RasterScanNode
 from .raw_bytes import RawBytesNode
 from .spectral import SpectralNode
+from .split import SplitNode
 from .statistics import StatisticsNode
+from .stereo import MixNode, PanNode, StereoMergeNode, StereoWidthNode
 from .to_midi import ToMidiNode
 from .wavetable import WavetableNode
 
@@ -44,4 +49,12 @@ __all__ = [
     "RangeMapNode",
     "ResampleNode",
     "SpectralNode",
+    "PanNode",
+    "StereoMergeNode",
+    "StereoWidthNode",
+    "MixNode",
+    "HarmonicNode",
+    "GradientNode",
+    "MetadataNode",
+    "SplitNode",
 ]

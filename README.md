@@ -10,13 +10,13 @@ Megane is the first of a planned family of conceptual "tools" in the **Idolmancy
 field. It is built around a **node graph**: function nodes emit generic numeric
 ("Channel") data, and translator nodes turn that into audio, MIDI, and more.
 
-> **Status: Phase 4 — spectral + GPU.** Working today: the headless engine +
-> CLI, the node-graph GUI, the core toolbox (color pipeline, wavetable and
-> statistics synthesis, math-data→MIDI with `.mid` export, control/math glue),
-> and now **spectral resynthesis** — paint an image into a spectrogram and
-> synthesize it, via an additive oscillator bank (GPU-ready) or ISTFT +
-> Griffin-Lim. Heavy nodes are bake-gated in the GUI; `megane bench --gpu`
-> times CPU vs CUDA. See [`docs/SPEC.md`](docs/SPEC.md) for the full plan.
+> **Status: v1.0 — initial development complete.** All six planned phases are
+> implemented: the headless engine + CLI, the node-graph GUI, the analysis/
+> synthesis/translation toolbox (raster & color scanning, wavetable, harmonic
+> and spectral resynthesis, statistics, gradient, metadata, MIDI), stereo and
+> multi-part composition (split/mix/pan), presets, example templates, and
+> Windows packaging. 24 node types; 90 passing tests. See
+> [`docs/SPEC.md`](docs/SPEC.md) for the full specification and history.
 
 ![Image-to-spectrogram synthesis](docs/images/gui_phase4_spectral.png)
 *The word in the image is the sound: a text image synthesized by the `spectral`
@@ -108,10 +108,17 @@ raw_bytes ───────────────────────�
 ```
 
 **Node families:** sources (`image_input`, `raw_bytes`, `constant`),
-image ops (`color_convert`), analysis (`raster_scan`, `color_scan`,
-`statistics`), synthesis (`oscillator`, `wavetable`, `spectral`), translation
-(`to_midi`), control/math (`expression`, `range_map`, `resample`), and sinks
-(`audio_output`, `midi_output`). New nodes appear in the GUI automatically.
+image ops (`color_convert`, `split`), analysis (`raster_scan`, `color_scan`,
+`statistics`, `gradient`, `metadata`), synthesis (`oscillator`, `wavetable`,
+`spectral`, `harmonic`), translation (`to_midi`), control/math (`expression`,
+`range_map`, `resample`), stereo/mix (`pan`, `stereo_merge`, `stereo_width`,
+`mix`), and sinks (`audio_output`, `midi_output`). New nodes appear in the
+GUI automatically.
+
+Ready-made starting points live in [`examples/`](examples/) (open, set the
+image path, press F5), and common node configurations are available as
+presets in the parameter panel — your own presets save to
+`~/.megane/presets.json`.
 
 Data flows between nodes as typed ports (modeled on TouchDesigner):
 
@@ -146,17 +153,18 @@ pip install -e ".[dev]"
 python -m pytest
 ```
 
-## Roadmap (short form)
+## Roadmap
 
 1. ✅ Engine vertical slice
 2. ✅ Node-graph GUI
 3. ✅ Color / statistics / MIDI toolbox + per-method pitch
-4. ✅ **Spectral (image→spectrogram→audio) + GPU readiness** (this release)
-5. Stereo, harmonics, vectors, metadata, image splitting
-6. Projects/templates, presets, Windows packaging
+4. ✅ Spectral (image→spectrogram→audio) + GPU readiness
+5. ✅ Stereo, harmonics, vectors, metadata, image splitting
+6. ✅ Presets, example templates, packaging — **v1.0**
 
 GPU: `pip install cupy-cuda12x`, then *Engine → Use GPU* (GUI) or `--gpu`
 (CLI). Benchmark your machine with `megane bench [--size 5000] --gpu`.
+Windows standalone build: see [`docs/INSTALL_WINDOWS.md`](docs/INSTALL_WINDOWS.md).
 
 Later: multi-image composition, video→audio, 3D/point clouds, audio→image, and a
 companion **Mangekyo** (kaleidoscope) tool for *transformation* rather than

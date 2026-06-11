@@ -54,9 +54,12 @@ def _collect_assets(graph: Graph) -> dict[str, str]:
 
 
 def to_dict(graph: Graph, ui: dict[str, Any] | None = None) -> dict[str, Any]:
+    from .. import __version__  # runtime import; package init imports this module
+
     data = {
         "format": FORMAT,
         "version": VERSION,
+        "app_version": __version__,  # informational: which Megane wrote this
         "settings": dict(graph.settings),
         "nodes": [n.to_dict() for n in graph.nodes.values()],
         "connections": [list(c) for c in graph.connections],

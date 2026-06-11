@@ -1,0 +1,88 @@
+{
+  "format": "megane-project",
+  "version": 1,
+  "app_version": "0.4.0",
+  "settings": {
+    "sample_rate": 48000.0,
+    "precision": "fp32",
+    "use_gpu": false,
+    "output_dir": "output"
+  },
+  "nodes": [
+    {
+      "type": "image_input",
+      "id": "image",
+      "params": {
+        "path": "",
+        "normalize": true
+      }
+    },
+    {
+      "type": "spectral",
+      "id": "spectral",
+      "params": {
+        "method": "additive",
+        "channel": "luminance",
+        "flip_vertical": true,
+        "level_mode": "linear",
+        "gamma": 1.0,
+        "dynamic_range_db": 60.0,
+        "freq_scale": "log",
+        "f_min": 55.0,
+        "f_max": 8000.0,
+        "max_partials": 256,
+        "interpolation": "linear",
+        "phase_mode": "random",
+        "total_seconds": 6.0,
+        "normalize": true,
+        "n_fft": 2048,
+        "hop": 512,
+        "iterations": 32,
+        "seed": 0,
+        "amplitude": 0.8,
+        "sample_rate": 48000.0
+      }
+    },
+    {
+      "type": "audio_output",
+      "id": "wav",
+      "params": {
+        "filename": "spectral_paint.wav",
+        "directory": "",
+        "subtype": "PCM_16",
+        "normalize": false
+      }
+    }
+  ],
+  "connections": [
+    [
+      "image",
+      "image",
+      "spectral",
+      "image"
+    ],
+    [
+      "spectral",
+      "audio",
+      "wav",
+      "audio"
+    ]
+  ],
+  "assets": {},
+  "ui": {
+    "positions": {
+      "image": [
+        -440,
+        0
+      ],
+      "spectral": [
+        -140,
+        0
+      ],
+      "wav": [
+        180,
+        0
+      ]
+    }
+  }
+}

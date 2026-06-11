@@ -1,0 +1,188 @@
+{
+  "format": "megane-project",
+  "version": 1,
+  "app_version": "0.4.0",
+  "settings": {
+    "sample_rate": 48000.0,
+    "precision": "fp32",
+    "use_gpu": false,
+    "output_dir": "output"
+  },
+  "nodes": [
+    {
+      "type": "image_input",
+      "id": "image",
+      "params": {
+        "path": "",
+        "normalize": true
+      }
+    },
+    {
+      "type": "color_scan",
+      "id": "color",
+      "params": {
+        "space": "hsv",
+        "axis": "column",
+        "reduction": "mean",
+        "direction": "forward"
+      }
+    },
+    {
+      "type": "oscillator",
+      "id": "osc",
+      "params": {
+        "input_range": "unit",
+        "pitch_mode": "continuous",
+        "f_min": 110.0,
+        "f_max": 1760.0,
+        "curve": "log",
+        "root_midi": 48,
+        "scale": "major",
+        "octaves": 4,
+        "notes": [
+          60,
+          62,
+          64,
+          67,
+          69
+        ],
+        "waveform": "saw",
+        "duration_mode": "total_seconds",
+        "total_seconds": 8.0,
+        "bpm": 120.0,
+        "steps_per_beat": 1.0,
+        "amplitude": 0.8,
+        "sample_rate": 48000.0
+      }
+    },
+    {
+      "type": "gradient",
+      "id": "grad",
+      "params": {
+        "channel": "luminance",
+        "axis": "column",
+        "direction_mode": "circular_mean"
+      }
+    },
+    {
+      "type": "range_map",
+      "id": "to_pan",
+      "params": {
+        "in_mode": "fixed",
+        "in_min": 0.0,
+        "in_max": 1.0,
+        "clip": true,
+        "curve": "linear",
+        "gamma": 1.0,
+        "out_min": -1.0,
+        "out_max": 1.0
+      }
+    },
+    {
+      "type": "pan",
+      "id": "pan",
+      "params": {
+        "pan": 0.0
+      }
+    },
+    {
+      "type": "audio_output",
+      "id": "wav",
+      "params": {
+        "filename": "color_field.wav",
+        "directory": "",
+        "subtype": "PCM_16",
+        "normalize": false
+      }
+    }
+  ],
+  "connections": [
+    [
+      "image",
+      "image",
+      "color",
+      "image"
+    ],
+    [
+      "image",
+      "image",
+      "grad",
+      "image"
+    ],
+    [
+      "color",
+      "c1",
+      "osc",
+      "values"
+    ],
+    [
+      "color",
+      "c3",
+      "osc",
+      "amp"
+    ],
+    [
+      "color",
+      "c2",
+      "osc",
+      "shape"
+    ],
+    [
+      "grad",
+      "direction",
+      "to_pan",
+      "values"
+    ],
+    [
+      "osc",
+      "audio",
+      "pan",
+      "audio"
+    ],
+    [
+      "to_pan",
+      "values",
+      "pan",
+      "pan"
+    ],
+    [
+      "pan",
+      "audio",
+      "wav",
+      "audio"
+    ]
+  ],
+  "assets": {},
+  "ui": {
+    "positions": {
+      "image": [
+        -640,
+        0
+      ],
+      "color": [
+        -360,
+        -80
+      ],
+      "grad": [
+        -360,
+        140
+      ],
+      "osc": [
+        -60,
+        -80
+      ],
+      "to_pan": [
+        -60,
+        140
+      ],
+      "pan": [
+        220,
+        0
+      ],
+      "wav": [
+        480,
+        0
+      ]
+    }
+  }
+}

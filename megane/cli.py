@@ -26,6 +26,7 @@ from .core.graph import Graph
 from .core.node import registered_nodes
 from .nodes.audio_output import AudioOutputNode
 from .nodes.image_input import ImageInputNode
+from .nodes.midi_output import MidiOutputNode
 from .nodes.oscillator import OscillatorNode
 from .nodes.raster_scan import RasterScanNode
 from .nodes.raw_bytes import RawBytesNode
@@ -123,20 +124,37 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
 
 def cmd_render(args: argparse.Namespace) -> int:
-    raw = project.read(args.project)
+    project_path = os.path.abspath(args.project)
+    raw = project.read(project_path)
     data = project.from_dict(raw)
-    changed = project.check_assets(raw)
-    if changed:
-        print("  WARNING: referenced assets changed since save:")
-        for p in changed:
-            print(f"    ! {p}")
-    out_dir = args.out_dir or data.settings.get("output_dir", "output")
-    sinks = [n for n in data.nodes.values() if isinstance(n, AudioOutputNode)]
-    if not sinks:
-        print("  no audio_output nodes to render")
-        return 1
-    for sink in sinks:
-        _render_sink(data, sink, out_dir, args.play)
+
+    # Relative asset paths resolve against the project file's directory, so
+    # projects/templates are portable across machines and working dirs.
+    old_cwd = os.getcwd()
+    if not args.keep_cwd:
+        os.chdir(os.path.dirname(project_path) or ".")
+    try:
+        changed = project.check_assets(raw)
+        if changed:
+            print("  WARNING: referenced assets changed since save:")
+            for p in changed:
+                print(f"    ! {p}")
+        out_dir = args.out_dir or data.settings.get("output_dir", "output")
+        sinks = [n for n in data.nodes.values()
+                 if isinstance(n, (AudioOutputNode, MidiOutputNode))]
+        if not sinks:
+            print("  no output nodes to render")
+            return 1
+        for sink in sinks:
+            if isinstance(sink, AudioOutputNode):
+                _render_sink(data, sink, out_dir, args.play)
+            else:
+                if not sink.values.get("directory"):
+                    sink.values["directory"] = out_dir
+                data.cook(sink.id)
+                print(f"  wrote {sink.last_path}")
+    finally:
+        os.chdir(old_cwd)
     return 0
 
 
@@ -246,10 +264,12 @@ def build_parser() -> argparse.ArgumentParser:
     dm.add_argument("--play", action="store_true")
     dm.set_defaults(func=cmd_demo)
 
-    rn = sub.add_parser("render", help="Render a saved .megane project.")
+    rn = sub.add_parser("render", help="Render a saved .megane project (audio + MIDI sinks).")
     rn.add_argument("project")
     rn.add_argument("--out-dir", dest="out_dir", default="")
     rn.add_argument("--play", action="store_true")
+    rn.add_argument("--keep-cwd", action="store_true",
+                    help="Do not resolve relative paths against the project directory.")
     rn.set_defaults(func=cmd_render)
 
     gu = sub.add_parser("gui", help="Launch the node-graph GUI.")

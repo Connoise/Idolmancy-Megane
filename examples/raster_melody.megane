@@ -1,0 +1,166 @@
+{
+  "format": "megane-project",
+  "version": 1,
+  "app_version": "0.4.0",
+  "settings": {
+    "sample_rate": 48000.0,
+    "precision": "fp32",
+    "use_gpu": false,
+    "output_dir": "output"
+  },
+  "nodes": [
+    {
+      "type": "image_input",
+      "id": "image",
+      "params": {
+        "path": "",
+        "normalize": true
+      }
+    },
+    {
+      "type": "raster_scan",
+      "id": "scan",
+      "params": {
+        "axis": "column",
+        "channel": "luminance",
+        "reduction": "mean",
+        "direction": "forward"
+      }
+    },
+    {
+      "type": "oscillator",
+      "id": "osc",
+      "params": {
+        "input_range": "data_range",
+        "pitch_mode": "scale",
+        "f_min": 110.0,
+        "f_max": 1760.0,
+        "curve": "log",
+        "root_midi": 48,
+        "scale": "pentatonic",
+        "octaves": 4,
+        "notes": [
+          60,
+          62,
+          64,
+          67,
+          69
+        ],
+        "waveform": "sine",
+        "duration_mode": "total_seconds",
+        "total_seconds": 6.0,
+        "bpm": 120.0,
+        "steps_per_beat": 1.0,
+        "amplitude": 0.8,
+        "sample_rate": 48000.0
+      }
+    },
+    {
+      "type": "to_midi",
+      "id": "midi",
+      "params": {
+        "input_range": "data_range",
+        "pitch_mode": "scale",
+        "low_note": 36,
+        "high_note": 84,
+        "root_midi": 48,
+        "scale": "pentatonic",
+        "octaves": 4,
+        "notes": [
+          60,
+          62,
+          64,
+          67,
+          69
+        ],
+        "duration_mode": "bpm",
+        "bpm": 120.0,
+        "steps_per_beat": 1.0,
+        "total_seconds": 4.0,
+        "gate": 0.9,
+        "velocity": 96,
+        "merge_repeats": false,
+        "track": 0
+      }
+    },
+    {
+      "type": "audio_output",
+      "id": "wav",
+      "params": {
+        "filename": "raster_melody.wav",
+        "directory": "",
+        "subtype": "PCM_16",
+        "normalize": false
+      }
+    },
+    {
+      "type": "midi_output",
+      "id": "mid",
+      "params": {
+        "filename": "raster_melody.mid",
+        "directory": ""
+      }
+    }
+  ],
+  "connections": [
+    [
+      "image",
+      "image",
+      "scan",
+      "image"
+    ],
+    [
+      "scan",
+      "values",
+      "osc",
+      "values"
+    ],
+    [
+      "scan",
+      "values",
+      "midi",
+      "values"
+    ],
+    [
+      "osc",
+      "audio",
+      "wav",
+      "audio"
+    ],
+    [
+      "midi",
+      "midi",
+      "mid",
+      "midi"
+    ]
+  ],
+  "assets": {},
+  "ui": {
+    "positions": {
+      "image": [
+        -560,
+        0
+      ],
+      "scan": [
+        -280,
+        0
+      ],
+      "osc": [
+        0,
+        -80
+      ],
+      "midi": [
+        0,
+        120
+      ],
+      "wav": [
+        300,
+        -80
+      ],
+      "mid": [
+        300,
+        120
+      ]
+    }
+  }
+}

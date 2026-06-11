@@ -120,7 +120,8 @@ def test_param_panel_builds_and_edits(qapp):
     edits = {}
     panel.valueEdited.connect(lambda n, v: edits.__setitem__(n, v))
     panel.show_node(node)
-    assert panel._form.rowCount() == 1 + len(node.params)
+    # title row + preset row + one row per param
+    assert panel._form.rowCount() == 2 + len(node.params)
 
     # find the pitch_mode combo and switch it
     combos = panel.findChildren(QtWidgets.QComboBox)

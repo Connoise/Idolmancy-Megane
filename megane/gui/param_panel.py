@@ -61,11 +61,56 @@ class ParamPanel(QtWidgets.QScrollArea):
             self._title.setText("no node selected")
             return
         self._title.setText(f"{node.type_name}  ({node.id})")
+        if node.params:
+            self._form.addRow("preset", self._preset_row(node))
         for spec in node.params:
             widget = self._make_widget(spec, node.values[spec.name])
             if spec.help:
                 widget.setToolTip(spec.help)
             self._form.addRow(spec.name, widget)
+
+    # -- presets -------------------------------------------------------------
+    def _preset_row(self, node: Node) -> QtWidgets.QWidget:
+        from ..core import presets
+
+        box = QtWidgets.QWidget()
+        lay = QtWidgets.QHBoxLayout(box)
+        lay.setContentsMargins(0, 0, 0, 0)
+        combo = QtWidgets.QComboBox()
+        combo.addItem("—")
+        available = presets.list_presets(node.type_name)
+        for name in sorted(available):
+            combo.addItem(name)
+        save_btn = QtWidgets.QToolButton()
+        save_btn.setText("save…")
+        save_btn.setToolTip("Save this node's current parameters as a preset")
+        lay.addWidget(combo, 1)
+        lay.addWidget(save_btn)
+
+        def apply(index: int) -> None:
+            name = combo.itemText(index)
+            values = available.get(name)
+            if not values or self._node is None:
+                return
+            for key, value in values.items():
+                if key in self._node.values:
+                    self._emit(key, value)
+            # rebuild after the edits land so the widgets show the new values
+            QtCore.QTimer.singleShot(0, lambda: self.show_node(self._node))
+
+        def save() -> None:
+            if self._node is None:
+                return
+            name, ok = QtWidgets.QInputDialog.getText(
+                self, "Save preset", f"Preset name for {self._node.type_name}:")
+            if ok and name.strip():
+                presets.save_user_preset(self._node.type_name, name.strip(),
+                                         dict(self._node.values))
+                self.show_node(self._node)  # refresh the combo
+
+        combo.activated.connect(apply)
+        save_btn.clicked.connect(save)
+        return box
 
     # -- widget factory -------------------------------------------------------
     def _emit(self, name: str, value: Any) -> None:

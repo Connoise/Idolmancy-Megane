@@ -9,7 +9,7 @@ or load graphs immediately::
 """
 from __future__ import annotations
 
-__version__ = "0.4.0"
+__version__ = "1.0.0"
 
 from . import nodes  # noqa: F401  (import for side effect: node registration)
 from .core import Graph, project
